@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PCM - Planejamento e Controle de Manutenção - BR Aço">
+  <base href="/ismael/mantix/">
+  <title>Mantix | PCM</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/styles.css?v=20260410a">
+  <link rel="stylesheet" href="css/responsive.css?v=20260410a">
+  <style>
+    /* fix: modal scroll - 2026-04-10 */
+    .modal { overflow: hidden !important; }
+    .modal-body { min-height: 0 !important; overflow-y: auto !important; }
+    .sistemas-builder { max-height: none !important; overflow-y: visible !important; }
+  </style>
+  <!-- SheetJS para leitura de XLSX/CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ===== LOADING OVERLAY (MySQL init) ===== -->
+<div id="pcm-loading-overlay" style="display:flex;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.85);align-items:center;justify-content:center;flex-direction:column;gap:16px">
+  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.15);border-top-color:#3b82f6;border-radius:50%;animation:pcm-spin 0.8s linear infinite"></div>
+  <p style="color:#e2e8f0;font-family:Inter,sans-serif;font-size:14px;margin:0">Carregando dados...</p>
+</div>
+<style>@keyframes pcm-spin{to{transform:rotate(360deg)}}</style>
+
+<!-- ===== LOGIN OVERLAY ===== -->
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">
+      <i class="fa-solid fa-gear"></i>
+    </div>
+    <h1 class="login-title">PCM BR Aço</h1>
+    <p class="login-subtitle">Planejamento e Controle de Manutenção</p>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Quem está operando?</label>
+      <select id="loginUserSelect" style="font-size:14px">
+        <option value="">Selecione seu nome...</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:8px">
+      <label class="form-label">PIN (4 dígitos)</label>
+      <div class="pin-inputs">
+        <input type="password" id="pin1" class="pin-input" maxlength="1" inputmode="numeric" autocomplete="off">
+        <input type="password" id="pin2" class="pin-input" maxlength="1" inputmode="numeric" autocomplete="off">
+        <input type="password" id="pin3" class="pin-input" maxlength="1" inputmode="numeric" autocomplete="off">
+        <input type="password" id="pin4" class="pin-input" maxlength="1" inputmode="numeric" autocomplete="off">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:16px;height:44px;font-size:15px" onclick="PCM.doLogin()">
+      <i class="fa-solid fa-right-to-bracket"></i> Entrar
+    </button>
+  </div>
+</div>
+
+<!-- ===== APP SHELL ===== -->
+<div id="app" class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-icon"><i class="fa-solid fa-gear"></i></div>
+        <div class="brand-text">
+          <span class="brand-name">BR Aço</span>
+          <span class="brand-subtitle">PCM Sistema</span>
+        </div>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" title="Recolher menu">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Principal</div>
+      <a href="#" class="nav-item active" data-section="dashboard">
+        <i class="fa-solid fa-gauge-high"></i>
+        <span>Dashboard</span>
+        <span class="nav-badge" id="badge-dashboard"></span>
+      </a>
+      <a href="#" class="nav-item" data-section="manutencoes">
+        <i class="fa-solid fa-wrench"></i>
+        <span>Manutenções</span>
+        <span class="nav-badge" id="badge-manutencoes"></span>
+      </a>
+      <a href="#" class="nav-item" data-section="nova-manutencao">
+        <i class="fa-solid fa-circle-plus"></i>
+        <span>Nova Manutenção</span>
+      </a>
+
+      <div class="nav-section-label">Planejamento</div>
+      <a href="#" class="nav-item" data-section="preventivas">
+        <i class="fa-solid fa-calendar-check"></i>
+        <span>Preventivas</span>
+        <span class="nav-badge" id="badge-preventivas"></span>
+      </a>
+
+      <div class="nav-section-label">Operacional</div>
+      <a href="#" class="nav-item" data-section="os">
+        <i class="fa-solid fa-file-contract"></i>
+        <span>Ordens de Serviço</span>
+        <span class="nav-badge danger" id="badge-os"></span>
+      </a>
+      <a href="#" class="nav-item" data-section="estoque">
+        <i class="fa-solid fa-boxes-stacked"></i>
+        <span>Estoque</span>
+        <span class="nav-badge danger" id="badge-estoque"></span>
+      </a>
+
+      <div class="nav-section-label">Análise</div>
+      <a href="#" class="nav-item" data-section="relatorios">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Relatórios</span>
+      </a>
+
+      <div class="nav-section-label">Sistema</div>
+      <a href="#" class="nav-item" data-section="configuracoes">
+        <i class="fa-solid fa-sliders"></i>
+        <span>Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-info">
+        <i class="fa-solid fa-database"></i>
+        <span id="storageInfo">LocalStorage</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-wrapper">
+
+    <!-- TOP HEADER -->
+    <header class="top-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="header-breadcrumb">
+          <span id="currentSectionTitle">Dashboard</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="globalSearch" placeholder="Buscar manutenção, máquina..." autocomplete="off">
+        </div>
+        <button class="header-btn" id="notificationsBtn" title="Notificações">
+          <i class="fa-solid fa-bell"></i>
+          <span class="header-badge" id="notifBadge" style="display:none">0</span>
+        </button>
+        <button class="header-btn" id="themeToggle" title="Alternar tema">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <div class="header-user user-badge-header" id="userBadge" onclick="PCM.doLogout()" title="Clique para sair">
+          <div class="header-user-avatar"><i class="fa-solid fa-user"></i></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start">
+            <span class="header-user-name" id="userBadgeName">—</span>
+            <span id="userBadgePapel" class="badge" style="font-size:10px;padding:1px 6px;line-height:1.4"></span>
+          </div>
+          <i class="fa-solid fa-right-from-bracket" style="font-size:12px;color:var(--text-muted);margin-left:4px" title="Sair"></i>
+        </div>
+      </div>
+    </header>
+
+    <!-- SECTIONS CONTAINER -->
+    <main class="content-area">
+
+      <!-- ===== SECTION: DASHBOARD ===== -->
+      <section id="section-dashboard" class="section active">
+        <div class="section-header">
+          <h1>Dashboard</h1>
+          <div class="section-actions">
+            <span id="dashboardDate" class="date-badge"></span>
+            <button class="btn btn-primary" onclick="PCM.navigate('nova-manutencao')">
+              <i class="fa-solid fa-plus"></i> Nova Manutenção
+            </button>
+          </div>
+        </div>
+
+        <!-- STATUS CARDS -->
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <!-- ALERTS -->
+        <div class="alerts-container" id="alertsContainer"></div>
+
+        <!-- CALENDAR + RECENT -->
+        <div class="dashboard-grid">
+          <div class="dashboard-calendar-card card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-calendar"></i> Calendário de Manutenções</h3>
+              <div class="calendar-nav">
+                <button class="btn btn-icon" id="calPrev"><i class="fa-solid fa-chevron-left"></i></button>
+                <span id="calMonthYear"></span>
+                <button class="btn btn-icon" id="calNext"><i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+            </div>
+            <div id="calendar" class="calendar"></div>
+          </div>
+
+          <div class="dashboard-right">
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> Recentes</h3>
+              </div>
+              <div id="recentList" class="recent-list"></div>
+            </div>
+            <div class="card mt-16">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-users"></i> Equipe Hoje</h3>
+              </div>
+              <div id="teamToday" class="team-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SECTION: MANUTENÇÕES ===== -->
+      <section id="section-manutencoes" class="section">
+        <div class="section-header">
+          <h1>Manutenções</h1>
+          <div class="section-actions">
+            <button class="btn btn-secondary" onclick="PCM.exportCSV()">
+              <i class="fa-solid fa-file-csv"></i> Exportar CSV
+            </button>
+            <button class="btn btn-primary" onclick="PCM.navigate('nova-manutencao')">
+              <i class="fa-solid fa-plus"></i> Nova
+            </button>
+          </div>
+        </div>
+
+        <!-- FILTER TABS -->
+        <div class="filter-tabs" id="filterTabs">
+          <button class="filter-tab active" data-filter="todas">Todas</button>
+          <button class="filter-tab" data-filter="hoje">Hoje</button>
+          <button class="filter-tab" data-filter="semana">Esta Semana</button>
+          <button class="filter-tab" data-filter="mes">Este Mês</button>
+          <button class="filter-tab" data-filter="preventiva">Preventivas</button>
+          <button class="filter-tab" data-filter="corretiva">Corretivas</button>
+          <button class="filter-tab" data-filter="pendente">Pendentes</button>
+          <button class="filter-tab" data-filter="andamento">Em Andamento</button>
+          <button class="filter-tab" data-filter="concluida">Concluídas</button>
+          <button class="filter-tab" data-filter="atrasada">Atrasadas</button>
+        </div>
+
+        <!-- SEARCH & SORT -->
+        <div class="list-controls">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="listSearch" placeholder="Buscar por máquina, responsável, descrição...">
+          </div>
+          <div class="sort-controls">
+            <select id="sortField">
+              <option value="dataPrevista">Data</option>
+              <option value="prioridade">Prioridade</option>
+              <option value="maquina">Máquina</option>
+              <option value="status">Status</option>
+            </select>
+            <button class="btn btn-icon" id="sortDir" title="Ordem">
+              <i class="fa-solid fa-arrow-down-wide-short"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- MAINTENANCE LIST -->
+        <div id="manutencoesList" class="manutencoes-list"></div>
+        <div id="emptyState" class="empty-state" style="display:none">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <p>Nenhuma manutenção encontrada</p>
+          <button class="btn btn-primary" onclick="PCM.navigate('nova-manutencao')">Criar Nova Manutenção</button>
+        </div>
+      </section>
+
+      <!-- ===== SECTION: NOVA/EDITAR MANUTENÇÃO ===== -->
+      <section id="section-nova-manutencao" class="section">
+        <div class="section-header">
+          <h1 id="formSectionTitle">Nova Manutenção</h1>
+          <div class="section-actions">
+            <button class="btn btn-secondary" onclick="PCM.navigate('manutencoes')">
+              <i class="fa-solid fa-arrow-left"></i> Voltar
+            </button>
+          </div>
+        </div>
+
+        <div class="form-container">
+          <form id="manutencaoForm" class="maintenance-form" novalidate>
+            <input type="hidden" id="editId">
+
+            <div class="form-row">
+              <!-- TIPO -->
+              <div class="form-group">
+                <label class="form-label required">Tipo de Manutenção</label>
+                <div class="radio-group">
+                  <label class="radio-option" id="radioPreventiva">
+                    <input type="radio" name="tipo" value="preventiva" checked>
+                    <span class="radio-box"><i class="fa-solid fa-shield-check"></i> Preventiva</span>
+                  </label>
+                  <label class="radio-option" id="radioCorretiva">
+                    <input type="radio" name="tipo" value="corretiva">
+                    <span class="radio-box"><i class="fa-solid fa-triangle-exclamation"></i> Corretiva</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- PRIORIDADE -->
+              <div class="form-group">
+                <label class="form-label required">Prioridade</label>
+                <div class="priority-group">
+                  <label class="priority-option critica">
+                    <input type="radio" name="prioridade" value="critica">
+                    <span><i class="fa-solid fa-circle"></i> Crítica</span>
+                  </label>
+                  <label class="priority-option alta">
+                    <input type="radio" name="prioridade" value="alta">
+                    <span><i class="fa-solid fa-circle"></i> Alta</span>
+                  </label>
+                  <label class="priority-option media" >
+                    <input type="radio" name="prioridade" value="media" checked>
+                    <span><i class="fa-solid fa-circle"></i> Média</span>
+                  </label>
+                  <label class="priority-option baixa">
+                    <input type="radio" name="prioridade" value="baixa">
+                    <span><i class="fa-solid fa-circle"></i> Baixa</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- MÁQUINA -->
+            <div class="form-group">
+              <label class="form-label required" for="fMaquina">Máquina / Equipamento</label>
+              <select id="fMaquina" name="maquina" required>
+                <option value="">-- Selecione a máquina --</option>
+              </select>
+              <span class="field-error" id="err-maquina"></span>
+            </div>
+
+            <!-- DESCRIÇÃO -->
+            <div class="form-group">
+              <label class="form-label required" for="fDescricao">Descrição do Problema / Serviço</label>
+              <textarea id="fDescricao" name="descricao" rows="3" placeholder="Descreva detalhadamente o problema ou serviço a ser realizado..." required minlength="10"></textarea>
+              <span class="field-error" id="err-descricao"></span>
+            </div>
+
+            <div class="form-row">
+              <!-- RESPONSÁVEL -->
+              <div class="form-group">
+                <label class="form-label required" for="fResponsavel">Responsável</label>
+                <select id="fResponsavel" name="responsavel" required>
+                  <option value="">-- Selecione o responsável --</option>
+                </select>
+                <span class="field-error" id="err-responsavel"></span>
+              </div>
+
+              <!-- DATA PREVISTA -->
+              <div class="form-group">
+                <label class="form-label required" for="fDataPrevista">Data Prevista</label>
+                <input type="date" id="fDataPrevista" name="dataPrevista" required>
+                <span class="field-error" id="err-dataPrevista"></span>
+              </div>
+
+              <!-- TEMPO ESTIMADO -->
+              <div class="form-group">
+                <label class="form-label" for="fTempoEstimado">Tempo Estimado (horas)</label>
+                <input type="number" id="fTempoEstimado" name="tempoEstimado" min="0.5" max="200" step="0.5" placeholder="ex: 4">
+              </div>
+            </div>
+
+            <!-- PEÇAS NECESSÁRIAS -->
+            <div class="form-group">
+              <label class="form-label" for="fPecas">Peças Necessárias</label>
+              <textarea id="fPecas" name="pecas" rows="2" placeholder="Ex: Disjuntor 40A, Rolamento 6007, Mangueira 8mm..."></textarea>
+            </div>
+
+            <!-- RECORRÊNCIA (só preventiva) -->
+            <div class="form-group" id="recorrenciaGroup">
+              <label class="form-label">Recorrência</label>
+              <div class="recorrencia-grid">
+                <label class="recorrencia-option"><input type="radio" name="recorrencia" value="nenhuma" checked><span>Não repete</span></label>
+                <label class="recorrencia-option"><input type="radio" name="recorrencia" value="diaria"><span>Diária</span></label>
+                <label class="recorrencia-option"><input type="radio" name="recorrencia" value="semanal"><span>Semanal</span></label>
+                <label class="recorrencia-option"><input type="radio" name="recorrencia" value="quinzenal"><span>Quinzenal</span></label>
+                <label class="recorrencia-option"><input type="radio" name="recorrencia" value="mensal"><span>Mensal</span></label>
+                <label class="recorrencia-option"><input type="radio" name="recorrencia" value="bimestral"><span>Bimestral</span></label>
+                <label class="recorrencia-option"><input type="radio" name="recorrencia" value="trimestral"><span>Trimestral</span></label>
+                <label class="recorrencia-option"><input type="radio" name="recorrencia" value="semestral"><span>Semestral</span></label>
+                <label class="recorrencia-option"><input type="radio" name="recorrencia" value="anual"><span>Anual</span></label>
+              </div>
+            </div>
+
+            <!-- OBSERVAÇÕES -->
+            <div class="form-group">
+              <label class="form-label" for="fObservacoes">Observações Adicionais</label>
+              <textarea id="fObservacoes" name="observacoes" rows="2" placeholder="Informações adicionais, cuidados especiais..."></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" onclick="PCM.navigate('manutencoes')">
+                <i class="fa-solid fa-xmark"></i> Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary" id="formSubmitBtn">
+                <i class="fa-solid fa-floppy-disk"></i> Salvar Manutenção
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ===== SECTION: PREVENTIVAS ===== -->
+      <section id="section-preventivas" class="section">
+        <div class="section-header">
+          <h1>Planejamento de Preventivas</h1>
+          <div class="section-actions">
+            <select id="preventivaMaquinaFilter" class="header-select">
+              <option value="">Todas as máquinas</option>
+            </select>
+            <button class="btn btn-primary" onclick="PCM.openModalPlano()">
+              <i class="fa-solid fa-plus"></i> Novo Plano
+            </button>
+          </div>
+        </div>
+
+        <div class="preventivas-layout">
+          <!-- Planos de Preventiva -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-clipboard-list"></i> Planos de Preventiva</h3>
+              <span id="planosCount" class="badge" style="background:var(--primary-100);color:var(--primary)"></span>
+            </div>
+            <div id="templatesGrid" class="templates-grid"></div>
+          </div>
+          <!-- Scheduled Preventivas -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-calendar-alt"></i> Próximas Preventivas</h3>
+            </div>
+            <div id="preventivasAgendadas" class="preventivas-agendadas"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SECTION: ORDENS DE SERVIÇO ===== -->
+      <section id="section-os" class="section">
+        <div class="section-header">
+          <h1>Ordens de Serviço</h1>
+          <div class="section-actions">
+            <button class="btn btn-primary" onclick="OS_Module.openModalNova()">
+              <i class="fa-solid fa-file-circle-plus"></i> Nova OS
+            </button>
+          </div>
+        </div>
+
+        <!-- OS Stats -->
+        <div class="stats-grid os-stats-grid" id="osStats"></div>
+
+        <!-- OS Filters -->
+        <div class="list-controls">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="osSearch" placeholder="Buscar OS, máquina, solicitante..." oninput="OS_Module.setSearch(this.value)">
+          </div>
+          <div class="filter-tabs" id="osFilterTabs">
+            <button class="filter-tab active" data-filter="todas" onclick="OS_Module.setFilter('todas')">Todas</button>
+            <button class="filter-tab" data-filter="abertas" onclick="OS_Module.setFilter('abertas')">Abertas</button>
+            <button class="filter-tab" data-filter="andamento" onclick="OS_Module.setFilter('andamento')">Em Andamento</button>
+            <button class="filter-tab" data-filter="aguardando" onclick="OS_Module.setFilter('aguardando')">Aguardando</button>
+            <button class="filter-tab" data-filter="concluidas" onclick="OS_Module.setFilter('concluidas')">Concluídas</button>
+          </div>
+        </div>
+
+        <!-- OS Cards List -->
+        <div id="osCardsList" class="manut-list"></div>
+      </section>
+
+      <!-- ===== SECTION: ESTOQUE ===== -->
+      <section id="section-estoque" class="section">
+        <div class="section-header">
+          <h1>Gestão de Estoque</h1>
+          <div class="section-actions">
+            <button class="btn btn-secondary" onclick="PCM.openMovimentacao(null)">
+              <i class="fa-solid fa-arrow-right-arrow-left"></i> Movimentação
+            </button>
+            <button class="btn btn-secondary" onclick="PCM.downloadTemplatePecas()" title="Baixar planilha modelo para preenchimento">
+              <i class="fa-solid fa-file-arrow-down"></i> Baixar Template
+            </button>
+            <button class="btn btn-secondary" onclick="PCM.openImportPecas()" title="Importar peças via CSV ou XLSX">
+              <i class="fa-solid fa-file-arrow-up"></i> Importar
+            </button>
+            <button class="btn btn-primary" onclick="PCM.openModal('modal-peca')">
+              <i class="fa-solid fa-plus"></i> Nova Peça
+            </button>
+          </div>
+        </div>
+
+        <!-- Estoque Summary -->
+        <div class="estoque-stats" id="estoqueStats"></div>
+
+        <!-- Filter -->
+        <div class="list-controls">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="estoqueSearch" placeholder="Buscar peça...">
+          </div>
+          <div class="sort-controls">
+            <select id="estoqueCatFilter">
+              <option value="">Todas as categorias</option>
+              <option value="critica">🔴 Críticas</option>
+              <option value="importante">🟡 Importantes</option>
+              <option value="consumo">🟢 Consumo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="estoque-table-wrapper">
+          <table class="estoque-table" id="estoqueTable">
+            <thead>
+              <tr>
+                <th>Peça</th>
+                <th>Categoria</th>
+                <th>Est. Mínimo</th>
+                <th>Est. Atual</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="estoqueBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== SECTION: RELATÓRIOS ===== -->
+      <section id="section-relatorios" class="section">
+        <div class="section-header">
+          <h1>Relatórios e Indicadores</h1>
+          <div class="section-actions">
+            <select id="reportPeriod">
+              <option value="mes">Este Mês</option>
+              <option value="trimestre">Trimestre</option>
+              <option value="ano">Este Ano</option>
+              <option value="total">Todo o Período</option>
+            </select>
+            <button class="btn btn-secondary" onclick="Reports.printReport()">
+              <i class="fa-solid fa-print"></i> Imprimir
+            </button>
+            <button class="btn btn-primary" onclick="Reports.exportPDF()">
+              <i class="fa-solid fa-file-pdf"></i> Exportar PDF
+            </button>
+          </div>
+        </div>
+
+        <div id="kpiGrid" class="kpi-grid"></div>
+
+        <!-- Indicadores de Manutenção -->
+        <div class="card mb-24">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-chart-mixed"></i> Indicadores de Manutenção</h3>
+            <span style="font-size:12px;color:var(--text-muted)">* Ativos marcados como Críticos</span>
+          </div>
+          <div id="indicadoresCriticos" class="indicadores-grid"></div>
+        </div>
+
+        <div class="card mb-24">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-table-list"></i> Desempenho por Ativo Crítico</h3>
+          </div>
+          <div id="tabelaMaquinasCriticas" class="table-container"></div>
+        </div>
+
+        <div class="card mb-24">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-dollar-sign"></i> Custos e Backlog</h3>
+          </div>
+          <div id="indicadoresCustos" class="indicadores-grid"></div>
+        </div>
+
+        <div class="reports-grid">
+          <div class="card">
+            <div class="card-header"><h3><i class="fa-solid fa-chart-bar"></i> Manutenções por Máquina</h3></div>
+            <div id="chartMaquina" class="bar-chart"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3><i class="fa-solid fa-chart-pie"></i> Distribuição por Tipo</h3></div>
+            <div id="chartTipo" class="pie-chart-container"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3><i class="fa-solid fa-users"></i> Performance da Equipe</h3></div>
+            <div id="chartEquipe" class="bar-chart"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3><i class="fa-solid fa-calendar-days"></i> Manutenções por Mês</h3></div>
+            <div id="chartMensal" class="bar-chart"></div>
+          </div>
+        </div>
+
+        <div class="card mt-24">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-table"></i> Histórico Detalhado</h3>
+          </div>
+          <div id="historicoTable" class="historico-container"></div>
+        </div>
+      </section>
+
+      <!-- ===== SECTION: CONFIGURAÇÕES ===== -->
+      <section id="section-configuracoes" class="section">
+        <div class="section-header">
+          <h1>Configurações</h1>
+        </div>
+
+        <div class="config-tabs">
+          <button class="config-tab active" data-config="maquinas">
+            <i class="fa-solid fa-industry"></i> Máquinas
+          </button>
+          <button class="config-tab" data-config="responsaveis">
+            <i class="fa-solid fa-users"></i> Responsáveis
+          </button>
+          <button class="config-tab" data-config="pecas-config">
+            <i class="fa-solid fa-gear"></i> Peças
+          </button>
+          <button class="config-tab" data-config="usuarios">
+            <i class="fa-solid fa-users-gear"></i> Usuários
+          </button>
+          <button class="config-tab" data-config="backup">
+            <i class="fa-solid fa-database"></i> Backup
+          </button>
+        </div>
+
+        <!-- Máquinas Config -->
+        <div id="config-maquinas" class="config-panel active">
+          <div class="panel-actions">
+            <button class="btn btn-primary" onclick="PCM.openModal('modal-maquina')">
+              <i class="fa-solid fa-plus"></i> Nova Máquina
+            </button>
+          </div>
+          <div id="maquinasList" class="config-list"></div>
+        </div>
+
+        <!-- Responsáveis Config -->
+        <div id="config-responsaveis" class="config-panel">
+          <div class="panel-actions">
+            <button class="btn btn-primary" onclick="PCM.openModal('modal-responsavel')">
+              <i class="fa-solid fa-plus"></i> Novo Responsável
+            </button>
+          </div>
+          <div id="responsaveisList" class="config-list"></div>
+        </div>
+
+        <!-- Peças Config -->
+        <div id="config-pecas-config" class="config-panel">
+          <div class="panel-actions">
+            <button class="btn btn-primary" onclick="PCM.openModal('modal-peca')">
+              <i class="fa-solid fa-plus"></i> Nova Peça
+            </button>
+          </div>
+          <div id="pecasConfigList" class="config-list"></div>
+        </div>
+
+        <!-- Usuários Config -->
+        <div id="config-usuarios" class="config-panel">
+          <div class="panel-actions">
+            <button class="btn btn-primary" onclick="PCM.openModal('modal-usuario');document.getElementById('usuarioEditId').value=''">
+              <i class="fa-solid fa-plus"></i> Novo Usuário
+            </button>
+          </div>
+          <div id="usuariosList" class="config-list"></div>
+        </div>
+
+        <!-- Backup -->
+        <div id="config-backup" class="config-panel">
+          <div class="backup-section">
+            <div class="card backup-card">
+              <div class="backup-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+              <h3>Exportar Backup</h3>
+              <p>Salva todos os dados do sistema em um arquivo JSON</p>
+              <button class="btn btn-primary" onclick="PCM.exportBackup()">
+                <i class="fa-solid fa-download"></i> Exportar Dados
+              </button>
+            </div>
+            <div class="card backup-card">
+              <div class="backup-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+              <h3>Importar Backup</h3>
+              <p>Restaura dados a partir de um arquivo de backup JSON</p>
+              <label class="btn btn-secondary" style="cursor:pointer">
+                <i class="fa-solid fa-upload"></i> Importar Dados
+                <input type="file" id="importFile" accept=".json" style="display:none" onchange="PCM.importBackup(this)">
+              </label>
+            </div>
+            <div class="card backup-card">
+              <div class="backup-icon warning"><i class="fa-solid fa-trash"></i></div>
+              <h3>Limpar Dados</h3>
+              <p>Remove TODOS os dados do sistema. Esta ação é irreversível!</p>
+              <button class="btn btn-danger" onclick="PCM.clearAllData()">
+                <i class="fa-solid fa-triangle-exclamation"></i> Limpar Tudo
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- MODALS -->
+<!-- ================================================================ -->
+
+<!-- Modal Overlay -->
+<div id="modalOverlay" class="modal-overlay" onclick="PCM.closeModal()"></div>
+
+<!-- Modal: Iniciar Manutenção -->
+<div id="modal-iniciar" class="modal">
+  <div class="modal-header">
+    <h2><i class="fa-solid fa-play"></i> Iniciar Manutenção</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <div class="modal-info" id="modalIniciarInfo"></div>
+    <div class="form-group">
+      <label class="form-label">Horário de Início</label>
+      <input type="time" id="modalIniciarHora" class="form-control">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observações Iniciais</label>
+      <textarea id="modalIniciarObs" rows="3" placeholder="Situação encontrada, condições iniciais..."></textarea>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-success" onclick="PCM.confirmarIniciar()">
+      <i class="fa-solid fa-play"></i> Confirmar Início
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Concluir Manutenção -->
+<div id="modal-concluir" class="modal modal-lg">
+  <div class="modal-header">
+    <h2><i class="fa-solid fa-check-circle"></i> Concluir Manutenção</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <div class="modal-info" id="modalConcluirInfo"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Horário de Conclusão</label>
+        <input type="time" id="modalConcluirHora" class="form-control">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tempo Total</label>
+        <input type="text" id="modalTempoTotal" class="form-control" readonly placeholder="Calculado automaticamente">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label required">O que foi feito</label>
+      <textarea id="modalOqueFoiFeto" rows="4" placeholder="Descreva detalhadamente o que foi executado..." required></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Peças Utilizadas</label>
+      <textarea id="modalPecasUsadas" rows="2" placeholder="Ex: 1x Disjuntor 40A, 2x Rolamento 6007..."></textarea>
+    </div>
+    <div class="form-group" id="proximaManutencaoGroup">
+      <label class="form-label">Próxima Manutenção Preventiva</label>
+      <input type="date" id="modalProximaData">
+      <small class="field-hint">Deixe em branco para não programar automaticamente</small>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observações Finais</label>
+      <textarea id="modalConcluirObs" rows="2" placeholder="Anomalias encontradas, recomendações..."></textarea>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-success" onclick="PCM.confirmarConcluir()">
+      <i class="fa-solid fa-check"></i> Confirmar Conclusão
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Detalhes da Manutenção -->
+<div id="modal-detalhes" class="modal modal-lg">
+  <div class="modal-header">
+    <h2><i class="fa-solid fa-file-lines"></i> Detalhes da Manutenção</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body" id="modalDetalhesBody"></div>
+  <div class="modal-footer" id="modalDetalhesFoter"></div>
+</div>
+
+<!-- Modal: Template Preventiva -->
+<div id="modal-template" class="modal modal-lg">
+  <div class="modal-header">
+    <h2 id="modalTemplateTitle"><i class="fa-solid fa-list-check"></i> Checklist Preventiva</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body" id="modalTemplateBody"></div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Fechar</button>
+    <button class="btn btn-warning" onclick="PCM.savePartialChecklist()">
+      <i class="fa-solid fa-floppy-disk"></i> Salvar Parcial
+    </button>
+    <button class="btn btn-success" onclick="PCM.concluirChecklist()">
+      <i class="fa-solid fa-check"></i> Concluir Preventiva
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Plano de Preventiva (CRUD) -->
+<div id="modal-plano-preventivo" class="modal modal-lg">
+  <div class="modal-header">
+    <h2 id="modalPlanoTitle"><i class="fa-solid fa-clipboard-list"></i> Novo Plano de Preventiva</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <!-- Informações Básicas -->
+    <div class="plano-section-label">Informações Gerais</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label required">Nome do Plano</label>
+        <input type="text" id="planoNome" placeholder="Ex: Trelimaxx 1 — Preventiva Mensal">
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Frequência</label>
+        <select id="planoFrequencia">
+          <option value="Diário">Diário</option>
+          <option value="Semanal">Semanal</option>
+          <option value="Quinzenal">Quinzenal</option>
+          <option value="Mensal" selected>Mensal</option>
+          <option value="Bimestral">Bimestral</option>
+          <option value="Trimestral">Trimestral</option>
+          <option value="Semestral">Semestral</option>
+          <option value="Anual">Anual</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:0 0 120px">
+        <label class="form-label">Tempo Est. (h)</label>
+        <input type="number" id="planoTempo" placeholder="2" min="0.5" step="0.5">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label">Máquinas (separadas por vírgula)</label>
+        <input type="text" id="planoMaquinas" placeholder="Ex: Trelimaxx 1, Trelimaxx 2">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ícone</label>
+        <select id="planoIcone">
+          <option value="fa-list-check">✅ Lista</option>
+          <option value="fa-border-all">⬛ Trelimaxx</option>
+          <option value="fa-truck-fast">🚛 Pórtico</option>
+          <option value="fa-truck-ramp-box">🏗️ Empilhadeira</option>
+          <option value="fa-wind">💨 Compressor</option>
+          <option value="fa-circle-nodes">⭕ Trefila</option>
+          <option value="fa-scissors">✂️ Cortadeira</option>
+          <option value="fa-rotate">🔄 Dobradeira</option>
+          <option value="fa-table-cells">🔲 MEP/Dhalmar</option>
+          <option value="fa-bolt">⚡ Elétrica</option>
+          <option value="fa-wrench">🔧 Mecânica</option>
+          <option value="fa-oil-can">🛢️ Lubrificação</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Sistemas e Tarefas -->
+    <div class="plano-section-label" style="margin-top:20px">
+      Sistemas e Tarefas
+      <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:8px">Agrupe tarefas por sistema (ex: Elétrico, Hidráulico, Segurança...)</span>
+    </div>
+    <div id="sistemasBuilder" class="sistemas-builder"></div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%" onclick="PCM.adicionarSistemaNovo()">
+      <i class="fa-solid fa-plus"></i> Adicionar Sistema
+    </button>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="PCM.savePlano()">
+      <i class="fa-solid fa-floppy-disk"></i> Salvar Plano
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Máquina -->
+<div id="modal-maquina" class="modal">
+  <div class="modal-header">
+    <h2 id="modalMaquinaTitle"><i class="fa-solid fa-industry"></i> Cadastrar Máquina</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="maqEditId">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label required">Nome da Máquina</label>
+        <input type="text" id="maqNome" placeholder="Ex: Trelimaxx 1" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Código / Tag</label>
+        <input type="text" id="maqCodigo" placeholder="Ex: TLX-01">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label required">Categoria</label>
+        <select id="maqCategoria" required>
+          <option value="">Selecione...</option>
+          <option value="Corte e Dobra">Corte e Dobra</option>
+          <option value="Telas e Colunas">Telas e Colunas</option>
+          <option value="Movimentação">Movimentação</option>
+          <option value="Equipamentos Auxiliares">Equipamentos Auxiliares</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Criticidade</label>
+        <select id="maqCriticidade">
+          <option value="alta">Alta</option>
+          <option value="media" selected>Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Fabricante</label>
+        <input type="text" id="maqFabricante">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Modelo</label>
+        <input type="text" id="maqModelo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ano</label>
+        <input type="number" id="maqAno" min="1990" max="2030">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Localização</label>
+        <input type="text" id="maqLocalizacao" placeholder="Ex: Galpão 1 - Setor A">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select id="maqStatus">
+          <option value="ativa">Ativa</option>
+          <option value="inativa">Inativa</option>
+          <option value="manutencao">Em Manutenção</option>
+        </select>
+      </div>
+    </div>
+    <!-- Novos campos -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Número de Série</label>
+        <input type="text" id="maqNumeroSerie" placeholder="Ex: SN-0012345">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor de Reposição (R$)</label>
+        <input type="number" id="maqValor" min="0" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ativo Crítico (KPI)?</label>
+        <select id="maqEhCritico">
+          <option value="false" selected>Não — Acessório</option>
+          <option value="true">Sim — Incluso nos KPIs</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Manual da Máquina (URL)</label>
+      <input type="url" id="maqManualUrl" placeholder="https://drive.google.com/... ou link do OneDrive">
+    </div>
+    <div class="plano-section-label" style="margin-top:16px;margin-bottom:8px">
+      Horários de Operação
+      <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:6px">(para cálculo de Disponibilidade)</span>
+    </div>
+    <div id="horariosMaquina" class="horarios-grid"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="PCM.saveMaquina()">
+      <i class="fa-solid fa-floppy-disk"></i> Salvar
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Responsável -->
+<div id="modal-responsavel" class="modal">
+  <div class="modal-header">
+    <h2 id="modalResponsavelTitle"><i class="fa-solid fa-user-plus"></i> Cadastrar Responsável</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="respEditId">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label required">Nome Completo</label>
+        <input type="text" id="respNome" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Função</label>
+        <select id="respFuncao">
+          <option value="Mecânico">Mecânico</option>
+          <option value="Eletricista">Eletricista</option>
+          <option value="Mecânico Sênior">Mecânico Sênior</option>
+          <option value="Técnico">Técnico</option>
+          <option value="Auxiliar">Auxiliar</option>
+          <option value="Coordenador">Coordenador</option>
+          <option value="Operador">Operador</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Telefone/WhatsApp</label>
+        <input type="text" id="respTelefone" placeholder="(XX) XXXXX-XXXX">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select id="respStatus">
+          <option value="ativo">Ativo</option>
+          <option value="ferias">Férias</option>
+          <option value="afastado">Afastado</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label">Especialidades</label>
+        <input type="text" id="respEspecialidades" placeholder="Ex: Elétrica, Hidráulica, CLP...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Custo/hora (R$)</label>
+        <input type="number" id="respCustoHora" min="0" step="0.01" placeholder="0,00">
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="PCM.saveResponsavel()">
+      <i class="fa-solid fa-floppy-disk"></i> Salvar
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- Modal: Nova OS -->
+<!-- ================================================================ -->
+<div id="modal-os-nova" class="modal">
+  <div class="modal-header">
+    <h2 id="modalOsNovaTitle"><i class="fa-solid fa-file-circle-plus"></i> Nova Ordem de Serviço</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="osEditId">
+
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label required">Máquina / Equipamento</label>
+        <select id="osMaquina" required>
+          <option value="">Selecionar máquina...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Tipo</label>
+        <div class="radio-group os-radio-group">
+          <label class="radio-option"><input type="radio" name="osTipo" value="corretiva" checked> <span class="radio-box">🔧 Corretiva</span></label>
+          <label class="radio-option"><input type="radio" name="osTipo" value="preventiva"> <span class="radio-box">📅 Preventiva</span></label>
+          <label class="radio-option"><input type="radio" name="osTipo" value="melhoria"> <span class="radio-box">📈 Melhoria</span></label>
+          <label class="radio-option"><input type="radio" name="osTipo" value="instalacao"> <span class="radio-box">🔩 Instalação</span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label required">Solicitante</label>
+        <input type="text" id="osSolicitante" placeholder="Nome do solicitante" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Função / Setor</label>
+        <input type="text" id="osFuncao" placeholder="Ex: Operador, Supervisor...">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label required">Descrição do Problema</label>
+      <textarea id="osDescricaoProblema" rows="4" placeholder="Descreva detalhadamente o problema ou solicitação (mín. 15 caracteres)..." required></textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label required">Prioridade</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="osPrioridade" value="critica"> <span class="badge badge-critica">🔴 Crítica</span></label>
+          <label class="radio-option"><input type="radio" name="osPrioridade" value="alta" checked> <span class="badge badge-alta">🟠 Alta</span></label>
+          <label class="radio-option"><input type="radio" name="osPrioridade" value="media"> <span class="badge badge-media">🟡 Média</span></label>
+          <label class="radio-option"><input type="radio" name="osPrioridade" value="baixa"> <span class="badge badge-baixa">🟢 Baixa</span></label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Impacto na Produção</label>
+        <div class="radio-group" style="flex-direction:column;gap:6px">
+          <label class="radio-option"><input type="radio" name="osImpacto" value="parada_total"> <span class="radio-box">🔴 Parada Total</span></label>
+          <label class="radio-option"><input type="radio" name="osImpacto" value="producao_reduzida"> <span class="radio-box">🟡 Produção Reduzida</span></label>
+          <label class="radio-option"><input type="radio" name="osImpacto" value="sem_impacto" checked> <span class="radio-box">🟢 Sem Impacto</span></label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="OS_Module.saveOSNova()">
+      <i class="fa-solid fa-file-circle-plus"></i> Criar OS
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- Modal: Detalhes OS -->
+<!-- ================================================================ -->
+<div id="modal-os-detalhes" class="modal modal-lg">
+  <div class="modal-header">
+    <h2><i class="fa-solid fa-file-contract"></i> Detalhes da Ordem de Serviço</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body" id="osDetalhesContent" style="padding:0">
+    <!-- Conteúdo gerado dinamicamente por OS_Module._detalhesHtml() -->
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- Modal: Movimentação de Estoque -->
+<!-- ================================================================ -->
+<div id="modal-movimentacao" class="modal">
+  <div class="modal-header">
+    <h2 id="modalMovTitle"><i class="fa-solid fa-arrow-right-arrow-left"></i> Movimentação de Estoque</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="movPecaId">
+
+    <div class="form-group">
+      <label class="form-label required">Peça / Item</label>
+      <select id="movPecaSelect" onchange="PCM.onMovPecaChange()">
+        <option value="">Selecionar peça...</option>
+      </select>
+    </div>
+
+    <div id="movEstoqueAtualInfo" style="display:none" class="form-group">
+      <div class="os-info-box">
+        <span>Estoque atual: <strong id="movEstoqueAtualVal">—</strong></span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label required">Tipo</label>
+      <div class="radio-group">
+        <label class="radio-option"><input type="radio" name="movTipo" value="entrada" checked onchange="PCM.onMovTipoChange()"> <span class="radio-box">📥 Entrada</span></label>
+        <label class="radio-option"><input type="radio" name="movTipo" value="saida" onchange="PCM.onMovTipoChange()"> <span class="radio-box">📤 Saída</span></label>
+        <label class="radio-option"><input type="radio" name="movTipo" value="ajuste" onchange="PCM.onMovTipoChange()"> <span class="radio-box">⚙️ Ajuste</span></label>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label required" id="movQtdLabel">Quantidade a Adicionar</label>
+        <input type="number" id="movQuantidade" min="1" value="1" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Responsável</label>
+        <input type="text" id="movResponsavel" placeholder="Nome do responsável">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Motivo / Observação</label>
+      <input type="text" id="movMotivo" placeholder="Ex: Compra, Quebra, Inventário...">
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-primary" id="movSaveBtn" onclick="PCM.saveMovimentacao()">
+      <i class="fa-solid fa-floppy-disk"></i> Registrar
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Peça -->
+<div id="modal-peca" class="modal">
+  <div class="modal-header">
+    <h2 id="modalPecaTitle"><i class="fa-solid fa-gear"></i> Cadastrar Peça</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="pecaEditId">
+    <!-- Tipo e Máquina Associada -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select id="pecaTipo" onchange="PCM.onPecaTipoChange()">
+          <option value="peca">🔩 Peça / Material</option>
+          <option value="servico">🔧 Serviço de Terceiro</option>
+        </select>
+      </div>
+      <div class="form-group" id="pecaMaquinaGroup">
+        <label class="form-label">Máquina Associada</label>
+        <select id="pecaMaquina">
+          <option value="">— Qualquer —</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label required">Descrição da Peça</label>
+        <input type="text" id="pecaDescricao" required placeholder="Ex: Rolamento 6007">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Código</label>
+        <input type="text" id="pecaCodigo" placeholder="Ex: ROL-6007">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <select id="pecaCategoria">
+          <option value="Elétrica">Elétrica</option>
+          <option value="Mecânica">Mecânica</option>
+          <option value="Hidráulica">Hidráulica</option>
+          <option value="Pneumática">Pneumática</option>
+          <option value="EPI">EPI</option>
+          <option value="Consumo">Consumo</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Criticidade</label>
+        <select id="pecaCriticidade">
+          <option value="critica">🔴 Crítica</option>
+          <option value="importante">🟡 Importante</option>
+          <option value="consumo">🟢 Consumo</option>
+        </select>
+      </div>
+    </div>
+    <!-- Estoque (ocultado para tipo=servico) -->
+    <div id="pecaEstoqueGroup">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label required">Estoque Mínimo</label>
+          <input type="number" id="pecaEstMin" min="0" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label required">Estoque Atual</label>
+          <input type="number" id="pecaEstAtual" min="0" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unidade</label>
+          <select id="pecaUnidade">
+            <option value="un">un</option>
+            <option value="pares">pares</option>
+            <option value="m">m</option>
+            <option value="kg">kg</option>
+            <option value="l">l</option>
+            <option value="rolos">rolos</option>
+            <option value="caixas">caixas</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Fornecedor</label>
+        <input type="text" id="pecaFornecedor" placeholder="Nome do fornecedor">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Custo Médio (R$)</label>
+        <input type="number" id="pecaCusto" min="0" step="0.01">
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="PCM.savePeca()">
+      <i class="fa-solid fa-floppy-disk"></i> Salvar
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Usuário -->
+<div id="modal-usuario" class="modal">
+  <div class="modal-header">
+    <h2 id="modalUsuarioTitle"><i class="fa-solid fa-user"></i> Cadastrar Usuário</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <input type="hidden" id="usuarioEditId">
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label required">Nome</label>
+        <input type="text" id="usuarioNome" required placeholder="Ex: João Silva">
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Papel</label>
+        <select id="usuarioPapel">
+          <option value="admin">Administrador</option>
+          <option value="gestor">Gestor</option>
+          <option value="almoxarife">Almoxarife</option>
+          <option value="tecnico">Técnico/Mecânico</option>
+          <option value="solicitante" selected>Solicitante</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label required">PIN (4 dígitos)</label>
+        <input type="password" id="usuarioPin" maxlength="4" inputmode="numeric" placeholder="••••">
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Confirmar PIN</label>
+        <input type="password" id="usuarioPinConfirm" maxlength="4" inputmode="numeric" placeholder="••••">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select id="usuarioAtivo">
+          <option value="true">✅ Ativo</option>
+          <option value="false">❌ Inativo</option>
+        </select>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:4px">
+      <i class="fa-solid fa-circle-info"></i>
+      Ao editar um usuário existente, deixe o PIN em branco para manter o atual.
+    </p>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="PCM.saveUsuario()">
+      <i class="fa-solid fa-floppy-disk"></i> Salvar
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Importar Peças -->
+<div id="modal-import-pecas" class="modal">
+  <div class="modal-header">
+    <h2><i class="fa-solid fa-file-arrow-up"></i> Importar Peças</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <!-- Zona de upload -->
+    <div id="importDropZone" style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:16px"
+         onclick="document.getElementById('importFileInput').click()"
+         ondragover="event.preventDefault();this.style.borderColor='var(--primary)'"
+         ondragleave="this.style.borderColor='var(--border)'"
+         ondrop="PCM.handleImportDrop(event)">
+      <i class="fa-solid fa-cloud-arrow-up" style="font-size:36px;color:var(--text-muted);margin-bottom:8px;display:block"></i>
+      <p style="font-size:14px;color:var(--text-muted);margin:0">Arraste um arquivo <strong>CSV</strong> ou <strong>XLSX</strong> aqui,<br>ou <span style="color:var(--primary);text-decoration:underline">clique para selecionar</span></p>
+      <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0">Colunas esperadas: Situação · Descrição · Quantidade · Código NCM · Inclusão · Última Alteração</p>
+    </div>
+    <input type="file" id="importFileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="PCM.handleImportFile(event)">
+
+    <!-- Preview -->
+    <div id="importPreview" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div id="importStats" style="font-size:13px;color:var(--text-muted)"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="font-size:12px;color:var(--text-muted)">
+            <input type="checkbox" id="importOverwrite" style="margin-right:4px">
+            Substituir peças existentes com mesma descrição
+          </label>
+        </div>
+      </div>
+      <div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead style="position:sticky;top:0;background:var(--bg-secondary)">
+            <tr>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Status</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Descrição</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Qtd</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">NCM</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">Inclusão</th>
+            </tr>
+          </thead>
+          <tbody id="importPreviewBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-secondary" onclick="PCM.downloadTemplatePecas()">
+      <i class="fa-solid fa-file-arrow-down"></i> Baixar Template
+    </button>
+    <button class="btn btn-primary" id="importConfirmBtn" style="display:none" onclick="PCM.confirmImportPecas()">
+      <i class="fa-solid fa-check"></i> Importar
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Confirmar Exclusão -->
+<div id="modal-confirmar" class="modal modal-sm">
+  <div class="modal-header">
+    <h2><i class="fa-solid fa-triangle-exclamation"></i> Confirmar Exclusão</h2>
+    <button class="modal-close" onclick="PCM.closeModal()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="modal-body">
+    <p id="modalConfirmarMsg">Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.</p>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" onclick="PCM.closeModal()">Cancelar</button>
+    <button class="btn btn-danger" id="confirmarDeleteBtn">
+      <i class="fa-solid fa-trash"></i> Confirmar Exclusão
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- NOTIFICATIONS DROPDOWN -->
+<!-- ================================================================ -->
+<div id="notificationsDropdown" class="notifications-dropdown" style="display:none">
+  <div class="notif-header">
+    <h4>Notificações</h4>
+    <button onclick="PCM.clearNotifications()">Limpar todas</button>
+  </div>
+  <div id="notifList" class="notif-list"></div>
+</div>
+
+<!-- ================================================================ -->
+<!-- SEARCH RESULTS DROPDOWN -->
+<!-- ================================================================ -->
+<div id="searchDropdown" class="search-dropdown" style="display:none"></div>
+
+<!-- ================================================================ -->
+<!-- TOAST CONTAINER -->
+<!-- ================================================================ -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- SCRIPTS -->
+<script src="js/utils.js?v=20260401a"></script>
+<script src="js/data.js?v=20260401a"></script>
+<script src="js/machines.js?v=20260401a"></script>
+<script src="js/templates.js?v=20260401a"></script>
+<script src="js/reports.js?v=20260401a"></script>
+<script src="js/os.js?v=20260401a"></script>
+<script src="js/app.js?v=20260401a"></script>
+</body>
+</html>

@@ -1,0 +1,396 @@
+/* ================================================================
+   PCM BR AÇO - Responsive Stylesheet
+   ================================================================ */
+
+/* ---- Tablet: 1024px ---- */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-right {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .dashboard-right .mt-16 { margin-top: 0; }
+
+  .preventivas-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .priority-group {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .reports-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .header-search {
+    width: 200px;
+  }
+}
+
+/* ---- Tablet Small: 768px ---- */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 0px;
+    --sidebar-collapsed: 0px;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    width: 260px;
+    z-index: 300;
+    transition: transform var(--transition), width var(--transition);
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .main-wrapper {
+    margin-left: 0 !important;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  /* Overlay for mobile sidebar */
+  .mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 250;
+    display: none;
+  }
+  .mobile-overlay.active {
+    display: block;
+  }
+
+  .content-area {
+    padding: 16px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .section-header h1 {
+    font-size: 18px;
+  }
+
+  .section-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .dashboard-right {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .priority-group {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .radio-group {
+    flex-direction: column;
+  }
+
+  .recorrencia-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .config-list {
+    grid-template-columns: 1fr;
+  }
+
+  .backup-section {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-tabs {
+    gap: 4px;
+  }
+
+  .filter-tab {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .list-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sort-controls {
+    justify-content: flex-end;
+  }
+
+  .manut-card-meta {
+    gap: 10px;
+  }
+
+  .header-search {
+    display: none;
+  }
+
+  .header-user-name {
+    display: none;
+  }
+
+  .estoque-table th,
+  .estoque-table td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .modal.modal-lg {
+    max-width: 95%;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-grid {
+    gap: 2px;
+  }
+
+  .cal-day {
+    min-height: 44px;
+  }
+
+  .cal-event {
+    font-size: 8px;
+  }
+
+  .toast-container {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+  }
+
+  .toast {
+    min-width: unset;
+    max-width: unset;
+    width: 100%;
+  }
+
+  .notifications-dropdown {
+    width: calc(100vw - 32px);
+    right: 16px;
+  }
+}
+
+/* ---- Mobile: 480px ---- */
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recorrencia-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .manut-card-header {
+    flex-wrap: wrap;
+  }
+
+  .manut-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .manut-card-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .manut-card-actions .btn {
+    flex: 1;
+    justify-content: center;
+    min-width: 70px;
+  }
+
+  .priority-group {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .config-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 0;
+  }
+
+  .config-tab {
+    white-space: nowrap;
+  }
+
+  .header-right {
+    gap: 4px;
+  }
+
+  .section-header h1 {
+    font-size: 16px;
+  }
+
+  .cal-day-header {
+    font-size: 9px;
+    padding: 4px 0;
+  }
+
+  .cal-day-num {
+    font-size: 10px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .cal-day {
+    min-height: 36px;
+    padding: 2px;
+  }
+
+  .cal-event {
+    display: none;
+  }
+
+  .cal-event-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    display: inline-block; margin: 1px;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .estoque-table .td-actions {
+    flex-direction: column;
+  }
+}
+
+/* ---- Large Screens: 1440px+ ---- */
+@media (min-width: 1440px) {
+  .stats-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .reports-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ---- Hover states on touch devices ---- */
+@media (hover: none) {
+  .manut-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .stat-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nav-item:hover {
+    background: transparent;
+  }
+}
+
+/* ---- Dark mode preference ---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1B2E;
+    --bg-secondary: #111D30;
+    --surface: #162032;
+    --surface-hover: #1A2840;
+    --border: #243350;
+    --border-light: #1E2E45;
+    --text: #E8EEF6;
+    --text-secondary: #9AABBD;
+    --text-muted: #5A6E82;
+    --sidebar-bg: #07111E;
+  }
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

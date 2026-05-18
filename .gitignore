@@ -1,0 +1,10 @@
+config.php
+migrate-config.php
+*.env
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.log
+logs/
+node_modules/

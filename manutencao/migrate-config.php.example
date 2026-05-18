@@ -1,0 +1,7 @@
+<?php
+/* Renomeie para migrate-config.php e preencha com as credenciais da origem.
+   NÃO commitar. Remover do servidor após usar migrate.php. */
+define('SRC_HOST', 'host-do-banco-origem');
+define('SRC_DB',   'nome-do-banco-origem');
+define('SRC_USER', 'usuario-origem');
+define('SRC_PASS', 'senha-origem');

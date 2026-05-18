@@ -1,0 +1,10 @@
+<?php
+/* ================================================================
+   PCM BR AÇO — Configurações do banco de dados
+   Copie para config.php e preencha com as credenciais reais.
+   ================================================================ */
+
+define('DB_HOST',     'seu-host-mysql');
+define('DB_NAME',     'seu-banco');
+define('DB_USER',     'seu-usuario');
+define('DB_PASSWORD', 'sua-senha');
