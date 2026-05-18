@@ -1566,15 +1566,21 @@ const PCM = (() => {
   // SISTEMA DE LOGIN / SESSÃO
   // ================================================================
   function checkLogin() {
-    const user = DB.Session.get();
-    const overlay = document.getElementById('loginOverlay');
+    let user = DB.Session.get();
     if (!user) {
-      if (overlay) { overlay.style.display = 'flex'; _populateLoginSelect(); }
-    } else {
-      if (overlay) overlay.style.display = 'none';
-      _updateUserBadge(user);
+      // Auto-login sem senha: usa usuário "Geral" ou cria sessão padrão
+      const usuarios = DB.Usuarios.getAll();
+      const geral = usuarios.find(u => u.nome === 'Geral') || usuarios.find(u => u.ativo !== false) || null;
+      if (geral) {
+        DB.Session.login(geral.id, geral.pin);
+        user = DB.Session.get();
+      } else {
+        // Fallback: sessão anônima sem usuário cadastrado ainda
+        user = { id: 'anonimo', nome: 'Operador', papel: 'admin', loginEm: Utils.nowISO() };
+      }
     }
-    return !!user;
+    if (user) _updateUserBadge(user);
+    return true;
   }
 
   function _populateLoginSelect() {
@@ -1621,9 +1627,7 @@ const PCM = (() => {
   }
 
   function doLogout() {
-    DB.Session.logout();
-    // Reload page to show login screen
-    window.location.reload();
+    // Login removido — logout não tem efeito
   }
 
   function setupPinInputs() {
