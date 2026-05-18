@@ -1566,20 +1566,14 @@ const PCM = (() => {
   // SISTEMA DE LOGIN / SESSÃO
   // ================================================================
   function checkLogin() {
-    let user = DB.Session.get();
+    const user = DB.Session.get();
+    const overlay = document.getElementById('loginOverlay');
     if (!user) {
-      // Auto-login sem senha: usa usuário "Geral" ou cria sessão padrão
-      const usuarios = DB.Usuarios.getAll();
-      const geral = usuarios.find(u => u.nome === 'Geral') || usuarios.find(u => u.ativo !== false) || null;
-      if (geral) {
-        DB.Session.login(geral.id, geral.pin);
-        user = DB.Session.get();
-      } else {
-        // Fallback: sessão anônima sem usuário cadastrado ainda
-        user = { id: 'anonimo', nome: 'Operador', papel: 'admin', loginEm: Utils.nowISO() };
-      }
+      if (overlay) { overlay.style.display = 'flex'; _populateLoginSelect(); }
+      return false;
     }
-    if (user) _updateUserBadge(user);
+    if (overlay) overlay.style.display = 'none';
+    _updateUserBadge(user);
     return true;
   }
 
@@ -1611,12 +1605,13 @@ const PCM = (() => {
   function doLogin() {
     const userId = document.getElementById('loginUserSelect')?.value;
     if (!userId) { Utils.toast('Selecione seu nome', 'warning'); return; }
-    const pin = ['pin1','pin2','pin3','pin4'].map(id => document.getElementById(id)?.value || '').join('');
-    if (pin.length < 4) { Utils.toast('Digite o PIN de 4 dígitos', 'warning'); return; }
-    const result = DB.Session.login(userId, pin);
+    // Login sem PIN: usa o PIN do usuário diretamente sem verificação
+    const usuario = DB.Usuarios.getById(userId);
+    if (!usuario) { Utils.toast('Usuário não encontrado', 'danger'); return; }
+    const result = DB.Session.login(userId, usuario.pin);
     if (!result.ok) {
-      Utils.toast(result.msg || 'PIN incorreto', 'danger');
-      // Limpa PIN
+      Utils.toast('Erro ao entrar', 'danger');
+      // Limpa PIN (legado)
       ['pin1','pin2','pin3','pin4'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
       document.getElementById('pin1')?.focus();
       return;
